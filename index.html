@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>基礎数学B グラフアプリ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f0f4f8; color: #333; }
+    header {
+      background: #1a73e8;
+      color: white;
+      text-align: center;
+      padding: 32px 16px 24px;
+    }
+    header h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    header p  { font-size: 0.95rem; opacity: 0.85; }
+    main {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    a.card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px 20px;
+      text-decoration: none;
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    a.card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.13);
+    }
+    .card-icon { font-size: 2rem; }
+    .card-title { font-size: 1.05rem; font-weight: bold; }
+    .card-formula { font-size: 0.88rem; color: #1a73e8; }
+    .card-desc { font-size: 0.82rem; color: #777; margin-top: 4px; }
+    footer {
+      text-align: center;
+      padding: 32px;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>基礎数学B グラフアプリ</h1>
+    <p>関数のグラフを操作して理解しよう</p>
+  </header>
+  <main>
+    <a class="card" href="quadratic.html">
+      <div class="card-icon">📐</div>
+      <div class="card-title">二次関数</div>
+      <div class="card-formula">y = a(x − p)² + q</div>
+      <div class="card-desc">頂点・軸・凸の向きを確認</div>
+    </a>
+    <a class="card" href="power.html">
+      <div class="card-icon">🔢</div>
+      <div class="card-title">べき関数</div>
+      <div class="card-formula">y = xⁿ</div>
+      <div class="card-desc">n を変えてグラフの形を比較</div>
+    </a>
+    <a class="card" href="irrational.html">
+      <div class="card-icon">√</div>
+      <div class="card-title">無理関数</div>
+      <div class="card-formula">y = √x, ∛x, ∜x</div>
+      <div class="card-desc">3本のグラフを同時に確認</div>
+    </a>
+    <a class="card" href="fraction.html">
+      <div class="card-icon">➗</div>
+      <div class="card-title">分数関数</div>
+      <div class="card-formula">y = a / (x − p) + q</div>
+      <div class="card-desc">漸近線とグラフの関係を確認</div>
+    </a>
+    <a class="card" href="inverse.html">
+      <div class="card-icon">↔️</div>
+      <div class="card-title">逆関数</div>
+      <div class="card-formula">f(x) と f⁻¹(x)</div>
+      <div class="card-desc">y = x を軸とした対称性を確認</div>
+    </a>
+  </main>
+  <footer>基礎数学B / Powered by Desmos API</footer>
+</body>
+</html>

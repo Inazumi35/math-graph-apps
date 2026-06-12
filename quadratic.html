@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>二次関数グラフ</title>
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 16px; font-size: 1.2rem; color: #333; }
+    #calculator { width: 100%; height: 65vh; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      padding: 16px;
+      background: white;
+      border-top: 1px solid #ddd;
+    }
+    .slider-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    label { font-size: 0.9rem; font-weight: bold; color: #555; }
+    input[type=range] { width: 180px; }
+    .value { font-size: 1.1rem; color: #1a73e8; min-width: 40px; text-align: center; }
+    .formula { text-align: center; font-size: 1.1rem; padding: 8px; color: #333; }
+    .info { text-align: center; font-size: 0.85rem; color: #888; padding-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>二次関数 y = a(x − p)² + q</h1>
+  <div id="calculator"></div>
+  <div class="formula" id="formula-display"></div>
+  <div class="info" id="info-display"></div>
+  <div class="controls">
+    <div class="slider-group">
+      <label>a = <span class="value" id="val-a">1</span></label>
+      <input type="range" id="slider-a" min="-3" max="3" step="0.5" value="1">
+    </div>
+    <div class="slider-group">
+      <label>p = <span class="value" id="val-p">0</span></label>
+      <input type="range" id="slider-p" min="-5" max="5" step="0.5" value="0">
+    </div>
+    <div class="slider-group">
+      <label>q = <span class="value" id="val-q">0</span></label>
+      <input type="range" id="slider-q" min="-5" max="5" step="0.5" value="0">
+    </div>
+  </div>
+
+  <script>
+    const elt = document.getElementById('calculator');
+    const calc = Desmos.GraphingCalculator(elt, {
+      keypad: false,
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+    });
+
+    let a = 1, p = 0, q = 0;
+
+    function fmt(v) {
+      return v >= 0 ? `${v}` : `${v}`;
+    }
+
+    function update() {
+      calc.setExpressions([
+        { id: 'func',  latex: `y = ${a}(x - ${p})^{2} + ${q}`, color: '#1a73e8', lineWidth: 2.5 },
+        { id: 'axis',  latex: `x = ${p}`, color: '#e74c3c', lineStyle: Desmos.Styles.DASHED, lineWidth: 1.5 },
+        { id: 'vertex', latex: `(${p}, ${q})`, color: '#e74c3c', pointSize: 12 },
+      ]);
+      document.getElementById('formula-display').textContent =
+        `y = ${a}(x − ${p})² + ${q}`;
+      document.getElementById('info-display').textContent =
+        `頂点 (${p}, ${q})　／　軸 x = ${p}　／　${a > 0 ? '下に凸' : a < 0 ? '上に凸' : ''}`;
+    }
+
+    document.getElementById('slider-a').addEventListener('input', e => {
+      a = parseFloat(e.target.value);
+      document.getElementById('val-a').textContent = a;
+      update();
+    });
+    document.getElementById('slider-p').addEventListener('input', e => {
+      p = parseFloat(e.target.value);
+      document.getElementById('val-p').textContent = p;
+      update();
+    });
+    document.getElementById('slider-q').addEventListener('input', e => {
+      q = parseFloat(e.target.value);
+      document.getElementById('val-q').textContent = q;
+      update();
+    });
+
+    update();
+  </script>
+</body>
+</html>

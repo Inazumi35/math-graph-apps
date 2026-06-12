@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>逆関数グラフ</title>
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 16px; font-size: 1.2rem; color: #333; }
+    #calculator { width: 100%; height: 70vh; }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      background: white;
+      border-top: 1px solid #ddd;
+    }
+    select {
+      font-size: 1rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .legend {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 18px; height: 4px; border-radius: 2px; }
+    .dashed { background: repeating-linear-gradient(90deg, #aaa 0 6px, transparent 6px 10px); height: 2px; }
+  </style>
+</head>
+<body>
+  <h1>逆関数と y = x の対称性</h1>
+  <div id="calculator"></div>
+  <div class="controls">
+    <select id="func-select">
+      <option value="quad">y = x²（x ≥ 0）と y = √x</option>
+      <option value="cube">y = x³ と y = ∛x</option>
+      <option value="exp">y = eˣ と y = ln x</option>
+    </select>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="dot" style="background:#1a73e8"></div>
+        <span id="label-f">y = x²</span>
+      </div>
+      <div class="legend-item">
+        <div class="dot" style="background:#e67e22"></div>
+        <span id="label-inv">y = √x</span>
+      </div>
+      <div class="legend-item">
+        <div class="dot dashed"></div>
+        <span>y = x</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const elt = document.getElementById('calculator');
+    const calc = Desmos.GraphingCalculator(elt, {
+      keypad: false,
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+    });
+
+    const pairs = {
+      quad: {
+        f:    { latex: 'y = x^{2} \\left\\{x \\ge 0\\right\\}', label: 'y = x²（x ≥ 0）' },
+        inv:  { latex: 'y = \\sqrt{x}',                          label: 'y = √x' },
+      },
+      cube: {
+        f:    { latex: 'y = x^{3}',   label: 'y = x³' },
+        inv:  { latex: 'y = x^{1/3}', label: 'y = ∛x' },
+      },
+      exp: {
+        f:    { latex: 'y = e^{x}',   label: 'y = eˣ' },
+        inv:  { latex: 'y = \\ln(x)', label: 'y = ln x' },
+      },
+    };
+
+    function update(key) {
+      const p = pairs[key];
+      calc.setExpressions([
+        { id: 'sym', latex: 'y = x',   color: '#aaaaaa', lineStyle: Desmos.Styles.DASHED, lineWidth: 1.5 },
+        { id: 'f',   latex: p.f.latex,   color: '#1a73e8', lineWidth: 2.5 },
+        { id: 'inv', latex: p.inv.latex, color: '#e67e22', lineWidth: 2.5 },
+      ]);
+      document.getElementById('label-f').textContent   = p.f.label;
+      document.getElementById('label-inv').textContent = p.inv.label;
+    }
+
+    document.getElementById('func-select').addEventListener('change', e => update(e.target.value));
+    update('quad');
+  </script>
+</body>
+</html>

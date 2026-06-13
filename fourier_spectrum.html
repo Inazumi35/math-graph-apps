@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>フーリエ係数 — 離散スペクトル</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 14px; font-size: 1.2rem; color: #333; }
+    #chart-wrap {
+      background: white;
+      margin: 0 auto;
+      max-width: 780px;
+      padding: 16px 16px 8px;
+    }
+    canvas { display: block; width: 100%; }
+    .func-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px 16px;
+      background: white;
+      border-top: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+    .func-row label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .info-box {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 10px 20px 16px;
+      background: white;
+      border-top: 1px solid #eee;
+      font-size: 0.84rem;
+      color: #555;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 16px;
+    }
+    .info-box .key { color: #888; white-space: nowrap; }
+    .info-box .val { color: #1a73e8; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>フーリエ係数 — 離散スペクトル |b_n|</h1>
+  <div id="chart-wrap">
+    <canvas id="chart" height="340"></canvas>
+  </div>
+  <div class="func-row">
+    <label><input type="radio" name="wave" value="square"   checked> 矩形波</label>
+    <label><input type="radio" name="wave" value="sawtooth">         のこぎり波</label>
+    <label><input type="radio" name="wave" value="triangle">         三角波</label>
+  </div>
+  <div class="info-box" id="info-box"></div>
+
+  <script>
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+    const N_MAX = 15;
+
+    const WAVES = {
+      square: {
+        coeff: n => (n % 2 === 1) ? 4 / (n * Math.PI) : 0,
+        formula: 'b_n = 4/(nπ)（n 奇数）、0（n 偶数）',
+        timeDomain: 'f(x) = sign(sin x)（矩形波）',
+        color: '#1a73e8',
+      },
+      sawtooth: {
+        coeff: n => 2 / (n * Math.PI),
+        formula: 'b_n = 2/(nπ)',
+        timeDomain: 'f(x) = x/π（のこぎり波、−π < x < π）',
+        color: '#e67e22',
+      },
+      triangle: {
+        coeff: n => (n % 2 === 1) ? 8 / (n * n * Math.PI * Math.PI) : 0,
+        formula: 'b_n = 8/(n²π²)（n 奇数）、0（n 偶数）',
+        timeDomain: 'f(x) = (2/π)arcsin(sin x)（三角波）',
+        color: '#27ae60',
+      },
+    };
+
+    let wave = 'square';
+
+    function draw() {
+      const w = canvas.width  = canvas.offsetWidth;
+      const h = canvas.height = 340;
+      const pl = 48, pr = 16, pt = 24, pb = 40;
+      const chartW = w - pl - pr;
+      const chartH = h - pt - pb;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const wv = WAVES[wave];
+      const coeffs = Array.from({length: N_MAX}, (_, i) => wv.coeff(i + 1));
+      const maxVal = Math.max(...coeffs, 0.01);
+
+      // axes
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pl, pt); ctx.lineTo(pl, pt + chartH);
+      ctx.lineTo(pl + chartW, pt + chartH);
+      ctx.stroke();
+
+      // y grid & labels
+      ctx.fillStyle = '#aaa';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'right';
+      [0.25, 0.5, 0.75, 1.0].forEach(frac => {
+        const val = frac * maxVal;
+        const y = pt + chartH - frac * chartH;
+        ctx.strokeStyle = '#eee';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(pl + chartW, y); ctx.stroke();
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(val.toFixed(2), pl - 4, y + 4);
+      });
+
+      // y-axis label
+      ctx.save();
+      ctx.translate(13, pt + chartH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#888';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('|bₙ|', 0, 0);
+      ctx.restore();
+
+      // bars
+      const barW = (chartW / N_MAX) * 0.55;
+      const gap   = chartW / N_MAX;
+
+      coeffs.forEach((val, i) => {
+        const n = i + 1;
+        const x = pl + gap * i + gap / 2;
+        const barH = (val / maxVal) * chartH;
+        const y = pt + chartH - barH;
+
+        ctx.fillStyle = val === 0 ? '#ddd' : wv.color;
+        ctx.fillRect(x - barW / 2, y, barW, barH);
+
+        // value label above bar
+        if (val > 0) {
+          ctx.fillStyle = '#555';
+          ctx.font = '10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(val.toFixed(3), x, y - 4);
+        }
+
+        // n label
+        ctx.fillStyle = '#666';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(n, x, pt + chartH + 18);
+      });
+
+      // x-axis label
+      ctx.fillStyle = '#888';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('n', pl + chartW / 2, pt + chartH + 36);
+
+      // update info
+      document.getElementById('info-box').innerHTML = `
+        <div class="key">時間域</div><div class="val">${wv.timeDomain}</div>
+        <div class="key">係数式</div><div class="val">${wv.formula}</div>
+      `;
+    }
+
+    document.querySelectorAll('input[name=wave]').forEach(r => {
+      r.addEventListener('change', e => { wave = e.target.value; draw(); });
+    });
+
+    window.addEventListener('resize', draw);
+    draw();
+  </script>
+</body>
+</html>

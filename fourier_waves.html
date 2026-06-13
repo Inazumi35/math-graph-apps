@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>フーリエ級数 — 波形セレクタ</title>
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 12px; font-size: 1.2rem; color: #333; }
+    #calculator { width: 100%; height: 58vh; }
+    .func-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 10px 16px 0;
+      background: white;
+      border-top: 1px solid #ddd;
+    }
+    .func-row label {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px 14px;
+      background: white;
+    }
+    .slider-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    label.sl { font-size: 0.9rem; font-weight: bold; color: #555; }
+    input[type=range] { width: 280px; }
+    .value { font-size: 1.1rem; color: #1a73e8; min-width: 40px; text-align: center; }
+    .formula { font-size: 0.82rem; color: #555; text-align: center; }
+    .legend {
+      display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+      font-size: 0.82rem; margin-top: 2px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <h1>フーリエ級数 — 波形セレクタ</h1>
+  <div id="calculator"></div>
+  <div class="func-row">
+    <label><input type="radio" name="wave" value="square"   checked> 矩形波</label>
+    <label><input type="radio" name="wave" value="sawtooth">         のこぎり波</label>
+    <label><input type="radio" name="wave" value="triangle">         三角波</label>
+  </div>
+  <div class="controls">
+    <div class="slider-group">
+      <label class="sl">項数 N = <span class="value" id="val-N">1</span></label>
+      <input type="range" id="slider-N" min="1" max="20" step="1" value="1">
+    </div>
+    <div class="formula" id="formula-display"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:#1a73e8"></div>部分和 S_N(x)</div>
+      <div class="legend-item"><div class="dot" style="background:#e74c3c; opacity:0.6"></div>目標波形</div>
+    </div>
+  </div>
+
+  <script>
+    const elt = document.getElementById('calculator');
+    const calc = Desmos.GraphingCalculator(elt, {
+      keypad: false,
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+    });
+
+    let N = 1, wave = 'square';
+
+    const WAVES = {
+      square: {
+        targetLatex: 'y = \\operatorname{sign}\\left(\\sin\\left(x\\right)\\right)',
+        buildSum(n) {
+          const terms = [];
+          for (let k = 1; k <= n; k++) {
+            const m = 2 * k - 1;
+            terms.push(`\\frac{\\sin\\left(${m}x\\right)}{${m}}`);
+          }
+          return `y = \\frac{4}{\\pi}\\left(${terms.join('+')}\\right)`;
+        },
+        fmtFormula(n) {
+          const last = 2 * n - 1;
+          return `S${n}(x) = (4/π)[sin x + sin 3x/3 + … + sin ${last}x/${last}]`;
+        },
+      },
+      sawtooth: {
+        // のこぎり波: f(x) = -2/π Σ (-1)^k sin(kx)/k = (2/π) Σ (-1)^(k+1) sin(kx)/k
+        targetLatex: 'y = \\frac{\\operatorname{mod}\\left(x+\\pi,\\ 2\\pi\\right)}{\\pi}-1',
+        buildSum(n) {
+          const terms = [];
+          for (let k = 1; k <= n; k++) {
+            const sign = k % 2 === 1 ? '' : '-';
+            const kx = k === 1 ? 'x' : `${k}x`;
+            terms.push(`${sign}\\frac{\\sin\\left(${kx}\\right)}{${k}}`);
+          }
+          return `y = \\frac{2}{\\pi}\\left(${terms.join('+')}\\right)`;
+        },
+        fmtFormula(n) {
+          return `S${n}(x) = (2/π)[sin x − sin 2x/2 + … ± sin ${n}x/${n}]`;
+        },
+      },
+      triangle: {
+        // 三角波: f(x) = (8/π²) Σ (-1)^(k+1) sin((2k-1)x)/(2k-1)²
+        targetLatex: 'y = \\frac{2}{\\pi}\\arcsin\\left(\\sin\\left(x\\right)\\right)',
+        buildSum(n) {
+          const terms = [];
+          for (let k = 1; k <= n; k++) {
+            const m = 2 * k - 1;
+            const sign = k % 2 === 1 ? '' : '-';
+            terms.push(`${sign}\\frac{\\sin\\left(${m}x\\right)}{${m * m}}`);
+          }
+          return `y = \\frac{8}{\\pi^{2}}\\left(${terms.join('+')}\\right)`;
+        },
+        fmtFormula(n) {
+          const last = 2 * n - 1;
+          return `S${n}(x) = (8/π²)[sin x − sin 3x/9 + … ± sin ${last}x/${last * last}]`;
+        },
+      },
+    };
+
+    function update() {
+      const w = WAVES[wave];
+      calc.setExpressions([
+        {
+          id: 'target',
+          latex: w.targetLatex,
+          color: '#e74c3c',
+          lineWidth: 1.5,
+          lineOpacity: 0.45,
+        },
+        {
+          id: 'partial',
+          latex: w.buildSum(N),
+          color: '#1a73e8',
+          lineWidth: 2.5,
+        },
+      ]);
+      document.getElementById('formula-display').textContent = w.fmtFormula(N);
+    }
+
+    document.getElementById('slider-N').addEventListener('input', e => {
+      N = parseInt(e.target.value);
+      document.getElementById('val-N').textContent = N;
+      update();
+    });
+    document.querySelectorAll('input[name=wave]').forEach(r => {
+      r.addEventListener('change', e => {
+        wave = e.target.value;
+        update();
+      });
+    });
+
+    update();
+  </script>
+</body>
+</html>

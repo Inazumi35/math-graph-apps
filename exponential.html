@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>指数関数グラフ</title>
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 16px; font-size: 1.2rem; color: #333; }
+    #calculator { width: 100%; height: 65vh; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      padding: 16px;
+      background: white;
+      border-top: 1px solid #ddd;
+    }
+    .slider-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    label { font-size: 0.9rem; font-weight: bold; color: #555; }
+    input[type=range] { width: 180px; }
+    .value { font-size: 1.1rem; color: #1a73e8; min-width: 40px; text-align: center; }
+    .formula { text-align: center; font-size: 1.1rem; padding: 8px; color: #333; }
+    .info { text-align: center; font-size: 0.85rem; color: #888; padding-bottom: 4px; }
+    .warn { text-align: center; font-size: 0.85rem; color: #e74c3c; padding-bottom: 4px; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>指数関数 y = aˣ</h1>
+  <div id="calculator"></div>
+  <div class="formula" id="formula-display"></div>
+  <div class="info" id="info-display"></div>
+  <div class="warn" id="warn-display"></div>
+  <div class="controls">
+    <div class="slider-group">
+      <label>a = <span class="value" id="val-a">2</span></label>
+      <input type="range" id="slider-a" min="0.2" max="5" step="0.1" value="2">
+    </div>
+  </div>
+
+  <script>
+    const elt = document.getElementById('calculator');
+    const calc = Desmos.GraphingCalculator(elt, {
+      keypad: false,
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+    });
+
+    let a = 2;
+
+    function fmtA(v) {
+      return Number.isInteger(v) ? String(v) : v.toFixed(1);
+    }
+
+    function update() {
+      const aStr = fmtA(a);
+      const warnEl = document.getElementById('warn-display');
+
+      if (Math.abs(a - 1) < 0.05) {
+        warnEl.textContent = 'a = 1 のとき y = 1（定数）になり指数関数ではありません';
+        calc.setExpressions([
+          { id: 'func', latex: `y = 1`, color: '#aaa', lineWidth: 2 },
+        ]);
+        document.getElementById('formula-display').textContent = 'y = 1ˣ = 1（定数）';
+        document.getElementById('info-display').textContent = '';
+        return;
+      }
+      warnEl.textContent = '';
+
+      calc.setExpressions([
+        { id: 'func',   latex: `y = ${aStr}^{x}`, color: '#1a73e8', lineWidth: 2.5 },
+        { id: 'recip',  latex: `y = (1/${aStr})^{x}`, color: '#e67e22', lineWidth: 1.5, lineStyle: Desmos.Styles.DASHED },
+        { id: 'asym',   latex: `y = 0`, color: '#aaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+        { id: 'origin', latex: `(0, 1)`, color: '#1a73e8', pointSize: 12 },
+        { id: 'pt1',    latex: `(1, ${aStr})`, color: '#1a73e8', pointSize: 10 },
+      ]);
+
+      const mono = a > 1 ? '単調増加（x → +∞ で +∞，x → −∞ で 0）'
+                         : '単調減少（x → +∞ で 0，x → −∞ で +∞）';
+      document.getElementById('formula-display').textContent = `y = ${aStr}ˣ`;
+      document.getElementById('info-display').textContent =
+        `${mono}　／　点 (0, 1) を通る　／　漸近線 y = 0　／　点線: y = (1/${aStr})ˣ`;
+    }
+
+    document.getElementById('slider-a').addEventListener('input', e => {
+      a = parseFloat(e.target.value);
+      document.getElementById('val-a').textContent = fmtA(a);
+      update();
+    });
+
+    update();
+  </script>
+</body>
+</html>

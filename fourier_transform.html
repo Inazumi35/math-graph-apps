@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>フーリエ変換 — 振幅スペクトル</title>
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 12px; font-size: 1.2rem; color: #333; }
+    #calculator { width: 100%; height: 60vh; }
+    .func-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 10px 16px 0;
+      background: white;
+      border-top: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+    .func-row label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px 8px;
+      background: white;
+    }
+    .slider-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    label.sl { font-size: 0.9rem; font-weight: bold; color: #555; }
+    input[type=range] { width: 260px; }
+    .value { font-size: 1.1rem; color: #1a73e8; min-width: 40px; text-align: center; }
+    .info-box {
+      background: white;
+      border-top: 1px solid #eee;
+      padding: 8px 20px 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 32px;
+      max-width: 660px;
+      margin: 0 auto;
+      width: 100%;
+      font-size: 0.84rem;
+      color: #555;
+    }
+    .info-box .key { color: #888; }
+    .info-box .val { color: #1a73e8; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>フーリエ変換 — 振幅スペクトル |F(ω)|</h1>
+  <div id="calculator"></div>
+  <div class="func-row">
+    <label><input type="radio" name="wave" value="rect"     checked> 矩形パルス</label>
+    <label><input type="radio" name="wave" value="gauss">             ガウス関数</label>
+    <label><input type="radio" name="wave" value="exp">               指数減衰</label>
+  </div>
+  <div class="controls">
+    <div class="slider-group">
+      <label class="sl">a = <span class="value" id="val-a">1</span></label>
+      <input type="range" id="slider-a" min="0.5" max="5" step="0.5" value="1">
+    </div>
+  </div>
+  <div class="info-box" id="info-box"></div>
+
+  <script>
+    const elt = document.getElementById('calculator');
+    const calc = Desmos.GraphingCalculator(elt, {
+      keypad: false,
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+    });
+
+    let wave = 'rect', a = 1;
+
+    const WAVES = {
+      rect: {
+        latex(a) {
+          // |F(ω)| = |2sin(aω)/ω|, ω≠0 → F(0)=2a
+          return `y = \\left|\\frac{2\\sin\\left(${a}\\omega\\right)}{\\omega}\\right|`;
+        },
+        timeDomain: (a) => `f(t) = 1  (|t| < ${a}),  0 (|t| ≥ ${a})`,
+        formula: '|F(ω)| = |2 sin(aω) / ω|',
+        note: (a) => `F(0) = 2a = ${2*a}、ゼロ点: ω = nπ/a`,
+      },
+      gauss: {
+        latex(a) {
+          // f(t) = e^{-at²} → F(ω) = √(π/a) e^{-ω²/(4a)}
+          const coeff = Math.sqrt(Math.PI / a).toFixed(3);
+          const exp_coeff = (1 / (4 * a)).toFixed(4);
+          return `y = ${coeff}\\cdot e^{-${exp_coeff}\\omega^{2}}`;
+        },
+        timeDomain: (a) => `f(t) = e^{−${a}t²}`,
+        formula: '|F(ω)| = √(π/a) · e^{−ω²/(4a)}',
+        note: (a) => `最大値 √(π/a) ≈ ${Math.sqrt(Math.PI/a).toFixed(3)}`,
+      },
+      exp: {
+        latex(a) {
+          // f(t) = e^{-at}U(t) → |F(ω)| = 1/√(a²+ω²)
+          return `y = \\frac{1}{\\sqrt{${a*a}+\\omega^{2}}}`;
+        },
+        timeDomain: (a) => `f(t) = e^{−${a}t} U(t)`,
+        formula: '|F(ω)| = 1 / √(a² + ω²)',
+        note: (a) => `F(0) = 1/a = ${(1/a).toFixed(3)}、半値点: ω = ±a = ±${a}`,
+      },
+    };
+
+    function update() {
+      const w = WAVES[wave];
+      calc.setExpression({
+        id: 'spectrum',
+        latex: w.latex(a),
+        color: '#1a73e8',
+        lineWidth: 2.5,
+      });
+      document.getElementById('info-box').innerHTML = `
+        <div class="key">時間域 f(t)</div>
+        <div class="val">${w.timeDomain(a)}</div>
+        <div class="key">変換式</div>
+        <div class="val">${w.formula}</div>
+        <div class="key">補足</div>
+        <div class="val">${w.note(a)}</div>
+      `;
+    }
+
+    document.getElementById('slider-a').addEventListener('input', e => {
+      a = parseFloat(e.target.value);
+      document.getElementById('val-a').textContent = a;
+      update();
+    });
+    document.querySelectorAll('input[name=wave]').forEach(r => {
+      r.addEventListener('change', e => { wave = e.target.value; update(); });
+    });
+
+    update();
+  </script>
+</body>
+</html>

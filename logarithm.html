@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>対数関数グラフ</title>
+  <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    h1 { text-align: center; padding: 16px; font-size: 1.2rem; color: #333; }
+    #calculator { width: 100%; height: 65vh; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      padding: 16px;
+      background: white;
+      border-top: 1px solid #ddd;
+    }
+    .slider-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    label { font-size: 0.9rem; font-weight: bold; color: #555; }
+    input[type=range] { width: 180px; }
+    .value { font-size: 1.1rem; color: #1a73e8; min-width: 40px; text-align: center; }
+    .formula { text-align: center; font-size: 1.1rem; padding: 8px; color: #333; }
+    .info { text-align: center; font-size: 0.85rem; color: #888; padding-bottom: 4px; }
+    .warn { text-align: center; font-size: 0.85rem; color: #e74c3c; padding-bottom: 4px; min-height: 1.2em; }
+    .toggle-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      padding: 8px 16px 0;
+      background: white;
+    }
+    .toggle-row label { font-size: 0.85rem; color: #555; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>対数関数 y = log<sub>a</sub> x</h1>
+  <div id="calculator"></div>
+  <div class="formula" id="formula-display"></div>
+  <div class="info" id="info-display"></div>
+  <div class="warn" id="warn-display"></div>
+  <div class="toggle-row">
+    <label>
+      <input type="checkbox" id="toggle-exp"> 指数関数 y = aˣ を表示
+    </label>
+    <label>
+      <input type="checkbox" id="toggle-sym"> y = x（対称軸）を表示
+    </label>
+  </div>
+  <div class="controls">
+    <div class="slider-group">
+      <label>a = <span class="value" id="val-a">2</span></label>
+      <input type="range" id="slider-a" min="0.2" max="5" step="0.1" value="2">
+    </div>
+  </div>
+
+  <script>
+    const elt = document.getElementById('calculator');
+    const calc = Desmos.GraphingCalculator(elt, {
+      keypad: false,
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+    });
+
+    let a = 2;
+    let showExp = false;
+    let showSym = false;
+
+    function fmtA(v) {
+      return Number.isInteger(v) ? String(v) : v.toFixed(1);
+    }
+
+    function update() {
+      const aStr = fmtA(a);
+      const warnEl = document.getElementById('warn-display');
+
+      if (Math.abs(a - 1) < 0.05) {
+        warnEl.textContent = 'a = 1 のとき対数関数は定義されません';
+        calc.setExpressions([{ id: 'func', latex: 'y = 0', color: '#aaa', lineWidth: 2 }]);
+        document.getElementById('formula-display').textContent = '';
+        document.getElementById('info-display').textContent = '';
+        return;
+      }
+      warnEl.textContent = '';
+
+      const exprs = [
+        {
+          id: 'func',
+          latex: `y = \\log_{${aStr}}\\left(x\\right)`,
+          color: '#1a73e8',
+          lineWidth: 2.5,
+        },
+        { id: 'asym',   latex: `x = 0`, color: '#aaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+        { id: 'pt1',    latex: `(1, 0)`, color: '#1a73e8', pointSize: 12 },
+        { id: 'pt2',    latex: `(${aStr}, 1)`, color: '#1a73e8', pointSize: 10 },
+      ];
+
+      if (showExp) {
+        exprs.push({
+          id: 'exp',
+          latex: `y = ${aStr}^{x}`,
+          color: '#e67e22',
+          lineWidth: 1.5,
+          lineStyle: Desmos.Styles.DASHED,
+        });
+      }
+      if (showSym) {
+        exprs.push({
+          id: 'sym',
+          latex: `y = x`,
+          color: '#27ae60',
+          lineWidth: 1,
+          lineStyle: Desmos.Styles.DASHED,
+        });
+      }
+
+      calc.setExpressions(exprs);
+
+      const mono = a > 1
+        ? '単調増加（x → +∞ で +∞，x → +0 で −∞）'
+        : '単調減少（x → +∞ で −∞，x → +0 で +∞）';
+      document.getElementById('formula-display').textContent = `y = log_${aStr} x`;
+      document.getElementById('info-display').textContent =
+        `${mono}　／　点 (1, 0) を通る　／　漸近線 x = 0`;
+    }
+
+    document.getElementById('slider-a').addEventListener('input', e => {
+      a = parseFloat(e.target.value);
+      document.getElementById('val-a').textContent = fmtA(a);
+      update();
+    });
+    document.getElementById('toggle-exp').addEventListener('change', e => {
+      showExp = e.target.checked;
+      update();
+    });
+    document.getElementById('toggle-sym').addEventListener('change', e => {
+      showSym = e.target.checked;
+      update();
+    });
+
+    update();
+  </script>
+</body>
+</html>

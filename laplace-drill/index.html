@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>応用数学 ラプラス変換 練習ドリル</title>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:#f0f2f8;color:#333;min-height:100vh;}
+.screen{display:none;padding:16px;max-width:600px;margin:0 auto;}
+.screen.active{display:block;}
+#home-title{text-align:center;font-size:1.25rem;font-weight:bold;color:#1a237e;margin:16px 0 4px;}
+#home-subtitle{text-align:center;font-size:0.85rem;color:#666;margin-bottom:18px;}
+.unit-card{background:#fff;border-radius:12px;padding:16px 18px;margin-bottom:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);cursor:pointer;border:2px solid transparent;
+  display:flex;align-items:center;gap:14px;transition:border-color 0.2s;}
+.unit-card:hover{border-color:#3949ab;}
+.unit-icon{font-size:1.4rem;width:36px;text-align:center;}
+.unit-name{font-size:1rem;font-weight:bold;}
+#quiz-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+#back-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:#666;padding:4px;}
+#quiz-unit-name{font-size:1rem;font-weight:bold;color:#1a237e;flex:1;}
+#quiz-qcount{font-size:0.85rem;color:#666;}
+#review-header{text-align:center;font-size:0.85rem;color:#e53935;margin-bottom:4px;font-weight:bold;display:none;}
+#progress-bar-wrap{background:#e8eaf6;border-radius:6px;height:7px;margin-bottom:14px;}
+#progress-bar{background:#3949ab;height:7px;border-radius:6px;transition:width 0.3s;}
+#card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:14px;min-height:90px;}
+#question-text{font-size:1.05rem;line-height:1.9;}
+.choices{display:flex;flex-direction:column;gap:9px;}
+.choice-btn{background:#fff;border:2px solid #c5cae9;border-radius:9px;padding:11px 14px;
+  font-size:0.97rem;cursor:pointer;text-align:left;transition:background 0.15s,border-color 0.15s;line-height:1.7;}
+.choice-btn:hover:not(:disabled){background:#e8eaf6;border-color:#3949ab;}
+.choice-btn.correct{background:#e8f5e9;border-color:#43a047;color:#2e7d32;font-weight:bold;}
+.choice-btn.wrong{background:#ffebee;border-color:#e53935;color:#c62828;}
+.choice-btn:disabled{cursor:default;}
+#feedback{min-height:26px;font-size:0.92rem;font-weight:bold;margin:10px 0 4px;text-align:center;}
+#feedback.ok{color:#2e7d32;}
+#feedback.ng{color:#c62828;}
+#next-btn{display:block;width:100%;padding:12px;background:#1a237e;color:#fff;
+  border:none;border-radius:9px;font-size:1rem;cursor:pointer;margin-top:10px;}
+#next-btn:disabled{background:#9fa8da;cursor:default;}
+.result-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:10px;}
+#unit-result-title{text-align:center;font-size:1.1rem;font-weight:bold;color:#1a237e;margin-bottom:6px;}
+#unit-score-display{text-align:center;font-size:2.8rem;font-weight:bold;color:#1a237e;margin:8px 0;}
+#unit-result-msg{text-align:center;font-size:0.95rem;color:#555;}
+#wrong-summary h3{font-size:0.95rem;color:#c62828;margin-bottom:8px;}
+.wrong-item{background:#fff8f8;border-left:4px solid #e53935;padding:9px 12px;
+  margin-bottom:7px;border-radius:4px;font-size:0.88rem;line-height:1.75;}
+#retry-btn{display:block;width:100%;padding:12px;background:#e53935;color:#fff;
+  border:none;border-radius:9px;font-size:1rem;cursor:pointer;margin-bottom:8px;}
+#to-home-btn{display:block;width:100%;padding:12px;background:#1a237e;color:#fff;
+  border:none;border-radius:9px;font-size:1rem;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="home-screen" class="screen active">
+  <div id="home-title">応用数学 ラプラス変換 練習ドリル</div>
+  <div id="home-subtitle">単元を選んで練習しよう（毎回ランダム5問）</div>
+  <div id="unit-list"></div>
+</div>
+
+<div id="quiz-screen" class="screen">
+  <div id="quiz-header">
+    <button id="back-btn" onclick="confirmBack()">←</button>
+    <div id="quiz-unit-name"></div>
+    <div id="quiz-qcount"></div>
+  </div>
+  <div id="review-header">🔁 復習モード</div>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="card"><div id="question-text"></div></div>
+  <div class="choices" id="choices"></div>
+  <div id="feedback"></div>
+  <button id="next-btn" disabled>次の問題へ</button>
+</div>
+
+<div id="result-screen" class="screen">
+  <div class="result-card">
+    <div id="unit-result-title"></div>
+    <div id="unit-score-display"></div>
+    <div id="unit-result-msg"></div>
+  </div>
+  <div class="result-card" id="wrong-summary"></div>
+  <button id="retry-btn" onclick="retryWrong()" style="display:none">🔁 間違えた問題を復習する</button>
+  <button id="to-home-btn" onclick="goHome()">単元選択に戻る</button>
+</div>
+
+<script>
+const L  = '\\mathcal{L}';
+const Li = '\\mathcal{L}^{-1}';
+
+const UNITS = [
+  {
+    name: '基本公式（変換）', icon: '📋',
+    questions: [
+      { q:`$${L}[e^{3t}]$ を求めよ．`, choices:[`$\\dfrac{1}{s+3}$`,`$\\dfrac{1}{s-3}$`,`$\\dfrac{3}{s^2+9}$`,`$\\dfrac{s}{s^2+9}$`], answer:1, exp:`$${L}[e^{at}]=\\dfrac{1}{s-a}$，$a=3$ より $\\dfrac{1}{s-3}$` },
+      { q:`$${L}[\\sin 2t]$ を求めよ．`, choices:[`$\\dfrac{s}{s^2+4}$`,`$\\dfrac{2}{s^2+4}$`,`$\\dfrac{2}{s^2-4}$`,`$\\dfrac{1}{s^2+2}$`], answer:1, exp:`$${L}[\\sin at]=\\dfrac{a}{s^2+a^2}$，$a=2$ より $\\dfrac{2}{s^2+4}$` },
+      { q:`$${L}[\\cos 3t]$ を求めよ．`, choices:[`$\\dfrac{3}{s^2+9}$`,`$\\dfrac{s}{s^2+3}$`,`$\\dfrac{s}{s^2+9}$`,`$\\dfrac{3}{s^2+3}$`], answer:2, exp:`$${L}[\\cos at]=\\dfrac{s}{s^2+a^2}$，$a=3$ より $\\dfrac{s}{s^2+9}$` },
+      { q:`$${L}[t^2]$ を求めよ．`, choices:[`$\\dfrac{1}{s^2}$`,`$\\dfrac{2}{s^2}$`,`$\\dfrac{2}{s^3}$`,`$\\dfrac{1}{s^3}$`], answer:2, exp:`$${L}[t^n]=\\dfrac{n!}{s^{n+1}}$，$n=2$ より $\\dfrac{2}{s^3}$` },
+      { q:`$${L}[1]$ を求めよ．`, choices:[`$1$`,`$\\dfrac{1}{s}$`,`$\\dfrac{1}{s^2}$`,`$s$`], answer:1, exp:`$${L}[1]=\\dfrac{1}{s}$（$s>0$）` },
+      { q:`$${L}[e^{-2t}]$ を求めよ．`, choices:[`$\\dfrac{1}{s-2}$`,`$\\dfrac{1}{s+2}$`,`$\\dfrac{2}{s^2+4}$`,`$\\dfrac{s}{s^2+4}$`], answer:1, exp:`$a=-2$ より $${L}[e^{-2t}]=\\dfrac{1}{s+2}$` },
+      { q:`$${L}[t]$ を求めよ．`, choices:[`$\\dfrac{1}{s}$`,`$\\dfrac{2}{s^2}$`,`$\\dfrac{1}{s^2}$`,`$\\dfrac{1}{s^3}$`], answer:2, exp:`$${L}[t^n]=\\dfrac{n!}{s^{n+1}}$，$n=1$ より $\\dfrac{1}{s^2}$` },
+      { q:`$${L}[3\\sin t]$ を求めよ．`, choices:[`$\\dfrac{1}{s^2+1}$`,`$\\dfrac{3}{s^2+1}$`,`$\\dfrac{3s}{s^2+1}$`,`$\\dfrac{3}{s^2+3}$`], answer:1, exp:`線形性より $3\\cdot\\dfrac{1}{s^2+1}=\\dfrac{3}{s^2+1}$` },
+    ]
+  },
+  {
+    name: 's移動法則（第1移動定理）', icon: '🔀',
+    questions: [
+      { q:`$${L}[e^{2t}\\sin 3t]$ を求めよ．`, choices:[`$\\dfrac{3}{(s-2)^2+9}$`,`$\\dfrac{3}{(s+2)^2+9}$`,`$\\dfrac{s-2}{(s-2)^2+9}$`,`$\\dfrac{3}{s^2+9}$`], answer:0, exp:`$${L}[e^{at}f(t)]=F(s-a)$．$s\\to s-2$ で $\\dfrac{3}{(s-2)^2+9}$` },
+      { q:`$${L}[e^{-t}\\cos 2t]$ を求めよ．`, choices:[`$\\dfrac{s+1}{(s+1)^2+4}$`,`$\\dfrac{s-1}{(s-1)^2+4}$`,`$\\dfrac{2}{(s+1)^2+4}$`,`$\\dfrac{s}{(s+1)^2+4}$`], answer:0, exp:`$s\\to s+1$ で $\\dfrac{s+1}{(s+1)^2+4}$` },
+      { q:`$${L}[te^{-t}]$ を求めよ．`, choices:[`$\\dfrac{1}{(s+1)^2}$`,`$\\dfrac{1}{(s-1)^2}$`,`$\\dfrac{1}{s^2+1}$`,`$\\dfrac{1}{s+1}$`], answer:0, exp:`$${L}[t]=\\dfrac{1}{s^2}$，$s\\to s+1$ で $\\dfrac{1}{(s+1)^2}$` },
+      { q:`$${L}[e^{3t}\\cos t]$ を求めよ．`, choices:[`$\\dfrac{s}{(s-3)^2+1}$`,`$\\dfrac{s-3}{(s-3)^2+1}$`,`$\\dfrac{1}{(s-3)^2+1}$`,`$\\dfrac{s+3}{(s+3)^2+1}$`], answer:1, exp:`$s\\to s-3$ で $\\dfrac{s-3}{(s-3)^2+1}$` },
+      { q:`$${L}[e^{2t}t^2]$ を求めよ．`, choices:[`$\\dfrac{2}{(s-2)^3}$`,`$\\dfrac{1}{(s-2)^3}$`,`$\\dfrac{2}{(s+2)^3}$`,`$\\dfrac{2}{s^3}$`], answer:0, exp:`$${L}[t^2]=\\dfrac{2}{s^3}$，$s\\to s-2$ で $\\dfrac{2}{(s-2)^3}$` },
+      { q:`$${L}[e^{-2t}\\sin t]$ を求めよ．`, choices:[`$\\dfrac{1}{(s-2)^2+1}$`,`$\\dfrac{1}{(s+2)^2+1}$`,`$\\dfrac{s+2}{(s+2)^2+1}$`,`$\\dfrac{1}{s^2+1}$`], answer:1, exp:`$s\\to s+2$ で $\\dfrac{1}{(s+2)^2+1}$` },
+      { q:`$${L}[t^2 e^t]$ を求めよ．`, choices:[`$\\dfrac{1}{(s-1)^3}$`,`$\\dfrac{2}{(s-1)^3}$`,`$\\dfrac{2}{(s+1)^3}$`,`$\\dfrac{2}{s^3}$`], answer:1, exp:`$${L}[t^2]=\\dfrac{2}{s^3}$，$s\\to s-1$ で $\\dfrac{2}{(s-1)^3}$` },
+      { q:`$${L}[e^{-t}\\sin 2t]$ を求めよ．`, choices:[`$\\dfrac{2}{(s+1)^2+4}$`,`$\\dfrac{2}{(s-1)^2+4}$`,`$\\dfrac{s+1}{(s+1)^2+4}$`,`$\\dfrac{2}{s^2+4}$`], answer:0, exp:`$s\\to s+1$ で $\\dfrac{2}{(s+1)^2+4}$` },
+    ]
+  },
+  {
+    name: '逆ラプラス変換（基本）', icon: '🔁',
+    questions: [
+      { q:`$${Li}\\!\\left[\\dfrac{1}{s}\\right]$ を求めよ．`, choices:[`$t$`,`$1$`,`$e^t$`,`$0$`], answer:1, exp:`$${L}[1]=\\dfrac{1}{s}$ より $1$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{s-2}\\right]$ を求めよ．`, choices:[`$e^{-2t}$`,`$e^{2t}$`,`$\\cos 2t$`,`$\\sin 2t$`], answer:1, exp:`$${L}[e^{at}]=\\dfrac{1}{s-a}$，$a=2$ より $e^{2t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{s+3}\\right]$ を求めよ．`, choices:[`$e^{3t}$`,`$e^{-3t}$`,`$\\sin 3t$`,`$\\cos 3t$`], answer:1, exp:`$a=-3$ より $e^{-3t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{s}{s^2+4}\\right]$ を求めよ．`, choices:[`$\\sin 2t$`,`$\\cos 2t$`,`$\\sin 4t$`,`$\\cos 4t$`], answer:1, exp:`$${L}[\\cos at]=\\dfrac{s}{s^2+a^2}$，$a=2$ より $\\cos 2t$` },
+      { q:`$${Li}\\!\\left[\\dfrac{3}{s^2+9}\\right]$ を求めよ．`, choices:[`$\\cos 3t$`,`$3\\cos 3t$`,`$\\sin 3t$`,`$3\\sin 3t$`], answer:2, exp:`$${L}[\\sin at]=\\dfrac{a}{s^2+a^2}$，$a=3$ より $\\sin 3t$` },
+      { q:`$${Li}\\!\\left[\\dfrac{2}{s^3}\\right]$ を求めよ．`, choices:[`$t$`,`$2t$`,`$t^2$`,`$2t^2$`], answer:2, exp:`$${L}[t^2]=\\dfrac{2}{s^3}$ より $t^2$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{s^2}\\right]$ を求めよ．`, choices:[`$1$`,`$t$`,`$t^2$`,`$2t$`], answer:1, exp:`$${L}[t]=\\dfrac{1}{s^2}$ より $t$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{(s+1)^2}\\right]$ を求めよ．`, choices:[`$te^{t}$`,`$te^{-t}$`,`$e^{-t}$`,`$t^2 e^{-t}$`], answer:1, exp:`$${L}[te^{-t}]=\\dfrac{1}{(s+1)^2}$ より $te^{-t}$` },
+    ]
+  },
+  {
+    name: '逆ラプラス変換（部分分数）', icon: '🧩',
+    questions: [
+      { q:`$${Li}\\!\\left[\\dfrac{1}{s(s+1)}\\right]$ を求めよ．`, choices:[`$1-e^{-t}$`,`$e^{-t}-1$`,`$1+e^{-t}$`,`$e^{t}-1$`], answer:0, exp:`$\\dfrac{1}{s(s+1)}=\\dfrac{1}{s}-\\dfrac{1}{s+1}$ より $1-e^{-t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{(s+1)(s+2)}\\right]$ を求めよ．`, choices:[`$e^{-t}-e^{-2t}$`,`$e^{-2t}-e^{-t}$`,`$e^{t}-e^{2t}$`,`$e^{-t}+e^{-2t}$`], answer:0, exp:`$\\dfrac{1}{(s+1)(s+2)}=\\dfrac{1}{s+1}-\\dfrac{1}{s+2}$ より $e^{-t}-e^{-2t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{2}{s(s+2)}\\right]$ を求めよ．`, choices:[`$1-e^{-2t}$`,`$e^{-2t}-1$`,`$1+e^{-2t}$`,`$e^{2t}-1$`], answer:0, exp:`$\\dfrac{2}{s(s+2)}=\\dfrac{1}{s}-\\dfrac{1}{s+2}$ より $1-e^{-2t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{3}{(s+1)(s-2)}\\right]$ を求めよ．`, choices:[`$e^{-t}-e^{2t}$`,`$e^{2t}-e^{-t}$`,`$e^{-t}+e^{2t}$`,`$3e^{-t}-3e^{2t}$`], answer:1, exp:`$\\dfrac{3}{(s+1)(s-2)}=-\\dfrac{1}{s+1}+\\dfrac{1}{s-2}$ より $e^{2t}-e^{-t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{2}{(s+1)^2}\\right]$ を求めよ．`, choices:[`$te^{t}$`,`$2te^{-t}$`,`$2e^{-t}$`,`$t^2 e^{-t}$`], answer:1, exp:`$${L}[te^{-t}]=\\dfrac{1}{(s+1)^2}$ より $2te^{-t}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{s^2+2s+1}\\right]$ を求めよ．`, choices:[`$te^{t}$`,`$te^{-t}$`,`$e^{-t}$`,`$\\sin t$`], answer:1, exp:`$s^2+2s+1=(s+1)^2$，$${L}[te^{-t}]=\\dfrac{1}{(s+1)^2}$ より $te^{-t}$` },
+      { q:`$\\dfrac{1}{(s+1)^2(s-2)}$ の部分分数展開の正しい形はどれか．`, choices:[`$\\dfrac{A}{(s+1)^2}+\\dfrac{B}{s-2}$`,`$\\dfrac{A}{s+1}+\\dfrac{B}{(s+1)^2}+\\dfrac{C}{s-2}$`,`$\\dfrac{A}{s+1}+\\dfrac{B}{s-2}$`,`$\\dfrac{A}{(s+1)^2(s-2)}$`], answer:1, exp:`重根 $(s+1)^2$ には $\\dfrac{A}{s+1}$ と $\\dfrac{B}{(s+1)^2}$ の両方が必要` },
+      { q:`$${Li}\\!\\left[\\dfrac{s}{(s+1)(s+2)}\\right]$ を求めよ．`, choices:[`$e^{-t}+2e^{-2t}$`,`$-e^{-t}+2e^{-2t}$`,`$e^{-t}-2e^{-2t}$`,`$2e^{-t}-e^{-2t}$`], answer:1, exp:`部分分数：$\\dfrac{-1}{s+1}+\\dfrac{2}{s+2}$ より $-e^{-t}+2e^{-2t}$` },
+    ]
+  },
+  {
+    name: '微分の変換', icon: '📐',
+    questions: [
+      { q:`$f(0)=0$ のとき，$${L}[f'(t)]$ を $F(s)$ で表せ．`, choices:[`$sF(s)$`,`$s^2F(s)$`,`$F(s)/s$`,`$F(s)-f(0)$`], answer:0, exp:`$${L}[f'(t)]=sF(s)-f(0)$，$f(0)=0$ より $sF(s)$` },
+      { q:`一般の場合，$${L}[f'(t)]$ を $F(s)$ で表せ．`, choices:[`$sF(s)-f(0)$`,`$s^2F(s)-sf(0)$`,`$F(s)+f(0)$`,`$sF(s)+f(0)$`], answer:0, exp:`微分の変換公式：$${L}[f'(t)]=sF(s)-f(0)$` },
+      { q:`$f(0)=f'(0)=0$ のとき，$${L}[f''(t)]$ を $F(s)$ で表せ．`, choices:[`$sF(s)$`,`$s^2F(s)$`,`$s^3F(s)$`,`$F(s)/s^2$`], answer:1, exp:`$${L}[f''(t)]=s^2F(s)-sf(0)-f'(0)$，初期値0より $s^2F(s)$` },
+      { q:`一般の場合，$${L}[f''(t)]$ を $F(s)$ で表せ．`, choices:[`$s^2F(s)-sf(0)-f'(0)$`,`$s^2F(s)-f(0)-f'(0)$`,`$s^2F(s)-sf(0)+f'(0)$`,`$s^2F(s)+sf(0)+f'(0)$`], answer:0, exp:`$${L}[f''(t)]=s^2F(s)-sf(0)-f'(0)$` },
+      { q:`像関数の微分：$${L}[tf(t)]$ を $F(s)$ で表せ．`, choices:[`$F'(s)$`,`$-F'(s)$`,`$F(s)/s$`,`$sF(s)$`], answer:1, exp:`$${L}[tf(t)]=-\\dfrac{d}{ds}F(s)=-F'(s)$` },
+      { q:`$${L}[t\\sin t]$ を求めよ（像関数の微分を用いて）．`, choices:[`$\\dfrac{1}{(s^2+1)^2}$`,`$\\dfrac{2s}{(s^2+1)^2}$`,`$\\dfrac{s}{s^2+1}$`,`$\\dfrac{-2s}{(s^2+1)^2}$`], answer:1, exp:`$-\\dfrac{d}{ds}\\dfrac{1}{s^2+1}=\\dfrac{2s}{(s^2+1)^2}$` },
+      { q:`$${L}[t\\cos t]$ を求めよ（像関数の微分を用いて）．`, choices:[`$\\dfrac{s^2-1}{(s^2+1)^2}$`,`$\\dfrac{1-s^2}{(s^2+1)^2}$`,`$\\dfrac{2s}{(s^2+1)^2}$`,`$\\dfrac{s}{s^2+1}$`], answer:0, exp:`$-\\dfrac{d}{ds}\\dfrac{s}{s^2+1}=\\dfrac{s^2-1}{(s^2+1)^2}$` },
+      { q:`$f(0)=1$，$f'(0)=0$ のとき，$${L}[f''(t)]$ は？`, choices:[`$s^2F(s)-s$`,`$s^2F(s)-1$`,`$s^2F(s)+s$`,`$s^2F(s)$`], answer:0, exp:`$s^2F(s)-s\\cdot f(0)-f'(0)=s^2F(s)-s$` },
+    ]
+  },
+  {
+    name: '微分方程式への応用', icon: '⚙️',
+    questions: [
+      { q:`$x'+x=0$，$x(0)=1$ をラプラス変換すると $X(s)$ は？`, choices:[`$\\dfrac{1}{s+1}$`,`$\\dfrac{1}{s-1}$`,`$\\dfrac{s}{s+1}$`,`$\\dfrac{1}{s(s+1)}$`], answer:0, exp:`$(s+1)X(s)-1=0$ より $X(s)=\\dfrac{1}{s+1}$` },
+      { q:`$X(s)=\\dfrac{1}{s+1}$ のとき $x(t)$ は？`, choices:[`$e^{t}$`,`$e^{-t}$`,`$\\sin t$`,`$\\cos t$`], answer:1, exp:`$${Li}\\!\\left[\\dfrac{1}{s+1}\\right]=e^{-t}$` },
+      { q:`$x'-2x=0$，$x(0)=3$ のとき $X(s)$ は？`, choices:[`$\\dfrac{3}{s+2}$`,`$\\dfrac{3}{s-2}$`,`$\\dfrac{1}{s-2}$`,`$\\dfrac{3}{s^2-4}$`], answer:1, exp:`$(s-2)X(s)=3$ より $X(s)=\\dfrac{3}{s-2}$` },
+      { q:`$X(s)=\\dfrac{3}{s-2}$ のとき $x(t)$ は？`, choices:[`$3e^{-2t}$`,`$3e^{2t}$`,`$3\\cos 2t$`,`$3\\sin 2t$`], answer:1, exp:`$${Li}\\!\\left[\\dfrac{3}{s-2}\\right]=3e^{2t}$` },
+      { q:`$x''+x=0$，$x(0)=0$，$x'(0)=1$ をラプラス変換すると $X(s)$ は？`, choices:[`$\\dfrac{1}{s^2+1}$`,`$\\dfrac{s}{s^2+1}$`,`$\\dfrac{1}{s^2-1}$`,`$\\dfrac{s}{s^2-1}$`], answer:0, exp:`$s^2X(s)-1+X(s)=0$ より $X(s)=\\dfrac{1}{s^2+1}$` },
+      { q:`$X(s)=\\dfrac{1}{s^2+1}$ のとき $x(t)$ は？`, choices:[`$\\cos t$`,`$\\sin t$`,`$e^{t}$`,`$\\cosh t$`], answer:1, exp:`$${Li}\\!\\left[\\dfrac{1}{s^2+1}\\right]=\\sin t$` },
+      { q:`$x'+2x=e^{-t}$，$x(0)=0$ のとき $X(s)$ は？`, choices:[`$\\dfrac{1}{(s+1)(s+2)}$`,`$\\dfrac{1}{(s-1)(s-2)}$`,`$\\dfrac{1}{(s+1)(s-2)}$`,`$\\dfrac{s}{(s+1)(s+2)}$`], answer:0, exp:`$(s+2)X(s)=\\dfrac{1}{s+1}$ より $X(s)=\\dfrac{1}{(s+1)(s+2)}$` },
+      { q:`$${Li}\\!\\left[\\dfrac{1}{(s+1)(s+2)}\\right]$ を求めよ．`, choices:[`$e^{-t}+e^{-2t}$`,`$e^{-t}-e^{-2t}$`,`$e^{t}-e^{2t}$`,`$e^{2t}-e^{t}$`], answer:1, exp:`$\\dfrac{1}{s+1}-\\dfrac{1}{s+2}$ より $e^{-t}-e^{-2t}$` },
+    ]
+  }
+];
+
+function pickRandom(arr, n) {
+  return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+}
+
+let currentUnit=-1, currentQ=0, sessionScore=0, sessionWrong=[], answered=false;
+let isReview=false, reviewQueue=[], reviewIdx=0, activeQuestions=[];
+
+function renderHome() {
+  const list = document.getElementById('unit-list');
+  list.innerHTML = '';
+  UNITS.forEach((unit, i) => {
+    const card = document.createElement('div');
+    card.className = 'unit-card';
+    card.innerHTML = `<div class="unit-icon">${unit.icon}</div><div class="unit-name">${unit.name}</div><div>▶</div>`;
+    card.onclick = () => startUnit(i);
+    list.appendChild(card);
+  });
+}
+
+function startUnit(i) {
+  currentUnit=i; currentQ=0; sessionScore=0; sessionWrong=[];
+  isReview=false;
+  activeQuestions = pickRandom(UNITS[i].questions, 5);
+  document.getElementById('quiz-unit-name').textContent = UNITS[i].name;
+  document.getElementById('review-header').style.display = 'none';
+  showScreen('quiz-screen');
+  showQuestion();
+}
+
+function showQuestion() {
+  const questions = isReview ? reviewQueue : activeQuestions;
+  const idx = isReview ? reviewIdx : currentQ;
+  const q = questions[idx];
+  const total = questions.length;
+
+  answered = false;
+  document.getElementById('progress-bar').style.width = (idx/total*100)+'%';
+  document.getElementById('quiz-qcount').textContent = `${idx+1} / ${total}`;
+  document.getElementById('question-text').innerHTML = q.q;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = '';
+  document.getElementById('next-btn').disabled = true;
+  document.getElementById('next-btn').textContent = (idx+1<total) ? '次の問題へ' : '結果を見る';
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c,ci) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `${'①②③④'[ci]} ${c}`;
+    btn.onclick = () => selectAnswer(ci, q);
+    choicesEl.appendChild(btn);
+  });
+  MathJax.typesetPromise([document.getElementById('card'), choicesEl]);
+}
+
+function selectAnswer(idx, q) {
+  if (answered) return;
+  answered = true;
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled=true);
+  const fb = document.getElementById('feedback');
+  if (idx === q.answer) {
+    btns[idx].classList.add('correct');
+    fb.textContent = '✓ 正解！';
+    fb.className = 'ok';
+    if (!isReview) sessionScore++;
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.answer].classList.add('correct');
+    fb.className = 'ng';
+    fb.innerHTML = `✗ 不正解　【解説】 ${q.exp}`;
+    if (!isReview) sessionWrong.push(q);
+    MathJax.typesetPromise([fb]);
+  }
+  document.getElementById('next-btn').disabled = false;
+}
+
+document.getElementById('next-btn').onclick = () => {
+  if (isReview) {
+    reviewIdx++;
+    if (reviewIdx < reviewQueue.length) showQuestion();
+    else { alert('復習完了！'); goHome(); }
+  } else {
+    currentQ++;
+    if (currentQ < 5) showQuestion();
+    else finishUnit();
+  }
+};
+
+function finishUnit() {
+  showScreen('result-screen');
+  document.getElementById('unit-result-title').textContent = UNITS[currentUnit].name + ' 結果';
+  document.getElementById('unit-score-display').textContent = `${sessionScore} / 5`;
+  const pct = sessionScore/5*100;
+  document.getElementById('unit-result-msg').textContent =
+    pct===100 ? '🎉 満点！完璧です！' : pct>=60 ? '👍 間違えた問題を復習しよう。' : '📖 教科書を確認してから再挑戦しよう。';
+
+  const ws = document.getElementById('wrong-summary');
+  ws.innerHTML = '';
+  if (sessionWrong.length > 0) {
+    ws.innerHTML = '<h3>▼ 間違えた問題</h3>';
+    sessionWrong.forEach(w => {
+      const div = document.createElement('div');
+      div.className = 'wrong-item';
+      div.innerHTML = `${w.q}<br>【解説】 ${w.exp}`;
+      ws.appendChild(div);
+    });
+    MathJax.typesetPromise([ws]);
+    document.getElementById('retry-btn').style.display = 'block';
+  } else {
+    ws.innerHTML = '<div style="text-align:center;color:#2e7d32;font-weight:bold;padding:8px;">全問正解！</div>';
+    document.getElementById('retry-btn').style.display = 'none';
+  }
+}
+
+function retryWrong() {
+  reviewQueue=[...sessionWrong]; reviewIdx=0; isReview=true;
+  document.getElementById('quiz-unit-name').textContent='復習';
+  document.getElementById('review-header').style.display='block';
+  showScreen('quiz-screen');
+  showQuestion();
+}
+
+function goHome() { showScreen('home-screen'); }
+function confirmBack() { if (confirm('途中で終了しますか？')) goHome(); }
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+renderHome();
+</script>
+</body>
+</html>

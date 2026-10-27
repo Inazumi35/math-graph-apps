@@ -30,72 +30,172 @@
       font-size: 16px; padding: 8px 24px; margin-top: 12px;
       background: #eee; border: 1px solid #aaa; border-radius: 6px; cursor: pointer;
     }
-    #done { font-size: 28px; color: #e74c3c; font-weight: bold; display: none; margin: 20px; }
+    #done { font-size: 22px; color: #e74c3c; font-weight: bold; display: none; margin: 20px; }
+    #history {
+      max-width: 640px; margin: 24px auto 0; padding: 12px;
+      font-size: 15px; color: #555; line-height: 1.8;
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      word-break: break-all;
+    }
+    #history .label { color: #888; font-size: 13px; display: block; margin-bottom: 4px; }
+    #history .last { color: #4a90d9; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>ランダム指名</h1>
 
-  <div class="class-buttons">
-    <button class="class-btn active" onclick="setClass(40, this)">40人</button>
-    <button class="class-btn" onclick="setClass(41, this)">41人</button>
-    <button class="class-btn" onclick="setClass(42, this)">42人</button>
-    <button class="class-btn" onclick="setClass(43, this)">43人</button>
-    <button class="class-btn" onclick="setClass(47, this)">47人</button>
-  </div>
+  <div class="class-buttons" id="classButtons"></div>
 
   <div id="number">--</div>
   <div id="remain"></div>
-  <div id="done">全員終了！</div>
+  <div id="done"></div>
 
   <div class="btn-row">
     <button id="nextBtn" onclick="next()">次の人を表示</button>
   </div>
   <div class="btn-row">
-    <button id="resetBtn" onclick="reset()">リセット</button>
+    <button id="resetBtn" onclick="resetConfirm()">リセット（このクラスを1周目から）</button>
   </div>
 
+  <div id="history"></div>
+
   <script>
-    let queue = [];
-    let total = 40;
+    const CLASSES = [
+      { id: '1M', total: 43 },
+      { id: '1E', total: 42 },
+      { id: '1I', total: 42 },
+      { id: '1C', total: 41 },
+      { id: '1A', total: 40 },
+    ];
+    const STORE_KEY = 'randomCall.v3';
+
+    let store = load();
+    let current = CLASSES.find(c => c.id === store.current) ? store.current : CLASSES[0].id;
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) { /* 壊れていたら初期化 */ }
+      return { current: null, classes: {} };
+    }
+
+    function save() {
+      store.current = current;
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(store));
+      } catch (e) { /* 保存不可でも動作は継続 */ }
+    }
 
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
+      return arr;
     }
 
-    function setClass(n, btn) {
-      document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      total = n;
-      reset();
+    // 直前に当てた人が次の周回の先頭に来ないようシャッフルし直す
+    function makeQueue(total, avoid) {
+      const q = shuffle(Array.from({length: total}, (_, i) => i + 1));
+      if (total > 1 && q[q.length - 1] === avoid) {
+        const j = Math.floor(Math.random() * (q.length - 1));
+        [q[q.length - 1], q[j]] = [q[j], q[q.length - 1]];
+      }
+      return q;
     }
 
-    function reset() {
-      queue = Array.from({length: total}, (_, i) => i + 1);
-      shuffle(queue);
-      document.getElementById('number').textContent = '--';
-      document.getElementById('remain').textContent = `残り ${total} 人`;
-      document.getElementById('done').style.display = 'none';
-      document.getElementById('nextBtn').disabled = false;
+    function newState(total) {
+      return { round: 1, queue: makeQueue(total, null), called: [], last: null };
+    }
+
+    function state() {
+      const cls = CLASSES.find(c => c.id === current);
+      let s = store.classes[current];
+      // 保存データが無い／人数設定が変わった場合は作り直す
+      if (!s || !Array.isArray(s.queue) || !Array.isArray(s.called) || typeof s.round !== 'number'
+          || s.queue.length + s.called.length !== cls.total) {
+        s = newState(cls.total);
+        store.classes[current] = s;
+      }
+      return s;
+    }
+
+    function buildButtons() {
+      const box = document.getElementById('classButtons');
+      box.innerHTML = '';
+      CLASSES.forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'class-btn' + (c.id === current ? ' active' : '');
+        b.textContent = c.id + '（1〜' + c.total + '）';
+        b.onclick = () => setClass(c.id);
+        box.appendChild(b);
+      });
+    }
+
+    function setClass(id) {
+      current = id;
+      buildButtons();
+      render();
+      save();
+    }
+
+    function resetConfirm() {
+      if (!confirm(current + ' の指名履歴を消して 1 周目からにします。よろしいですか？')) return;
+      store.classes[current] = newState(CLASSES.find(c => c.id === current).total);
+      render();
+      save();
     }
 
     function next() {
-      if (queue.length === 0) return;
-      const n = queue.pop();
-      document.getElementById('number').textContent = n;
-      if (queue.length === 0) {
-        document.getElementById('remain').textContent = '残り 0 人';
-        document.getElementById('done').style.display = 'block';
-        document.getElementById('nextBtn').disabled = true;
+      const s = state();
+      const total = CLASSES.find(c => c.id === current).total;
+      if (s.queue.length === 0) {
+        // 1周終わったら自動で次の周回へ
+        s.round += 1;
+        s.queue = makeQueue(total, s.last);
+        s.called = [];
+      }
+      s.last = s.queue.pop();
+      s.called.push(s.last);
+      render();
+      save();
+    }
+
+    function render() {
+      const s = state();
+      document.getElementById('number').textContent = s.last === null ? '--' : s.last;
+      document.getElementById('remain').textContent =
+        s.round + ' 周目 ／ 残り ' + s.queue.length + ' 人';
+
+      const done = document.getElementById('done');
+      if (s.queue.length === 0 && s.called.length > 0) {
+        done.textContent = roundDoneMessage(s);
+        done.style.display = 'block';
       } else {
-        document.getElementById('remain').textContent = `残り ${queue.length} 人`;
+        done.style.display = 'none';
+      }
+      document.getElementById('nextBtn').disabled = false;
+
+      const hist = document.getElementById('history');
+      if (s.called.length === 0) {
+        hist.innerHTML = '<span class="label">' + current + ' 指名済み</span>まだ指名なし';
+      } else {
+        const body = s.called.map((n, i) =>
+          i === s.called.length - 1 ? '<span class="last">' + n + '</span>' : String(n)
+        ).join(' → ');
+        hist.innerHTML = '<span class="label">' + current + '・' + s.round + ' 周目 指名済み（'
+          + s.called.length + ' 人）</span>' + body;
       }
     }
 
-    reset();
+    function roundDoneMessage(s) {
+      return s.round + ' 周目 全員終了！　次を押すと ' + (s.round + 1) + ' 周目へ';
+    }
+
+    buildButtons();
+    render();
+    save();
   </script>
 </body>
 </html>
